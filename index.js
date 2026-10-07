@@ -12,7 +12,7 @@ const pino = require('pino');
 
 // ---- Config (from .env) ----
 const BOT_NAME = process.env.BOT_NAME || 'HAWEE-XD';
-const PREFIX = process.env.PREFIX || '.';
+const PREFIX = process.env.BOT_PREFIX || '.';
 const OWNER = (process.env.OWNER_NUMBER || '').replace(/\D/g, '');
 const PHONE = (process.env.PHONE_NUMBER || '').replace(/\D/g, '');
 const AUTO_STATUS_VIEW = process.env.AUTO_STATUS_VIEW === 'true';
@@ -58,6 +58,7 @@ const commands = {
   },
 };
 
+let announced = false; // send the 'connected' message once per run
 let pairingRequested = false; // only ask for ONE pairing code per run
 
 async function start() {
@@ -92,7 +93,20 @@ async function start() {
       }
     }
 
-    if (connection === 'open') console.log(`✅ ${BOT_NAME} connected`);
+    if (connection === 'open') {
+      console.log(`✅ ${BOT_NAME} connected`);
+      if (!announced) {
+        announced = true;
+        try {
+          const me = sock.user.id.split(':')[0].split('@')[0] + '@s.whatsapp.net';
+          await sock.sendMessage(me, {
+            text: `✅ *${BOT_NAME}* is connected!\nPrefix: ${PREFIX}\nSend ${PREFIX}menu to see commands.`,
+          });
+        } catch (e) {
+          console.error('Could not send connected alert:', e.message);
+        }
+      }
+    }
     if (connection === 'close') {
       const code = lastDisconnect?.error?.output?.statusCode;
       console.log('Connection closed. Status code:', code, lastDisconnect?.error?.message || '');
@@ -108,7 +122,6 @@ async function start() {
   });
 
   sock.ev.on('messages.upsert', async ({ messages, type }) => {
-    if (type !== 'notify') return;
     for (const msg of messages) {
       try {
         const jid = msg.key.remoteJid;
@@ -126,8 +139,9 @@ async function start() {
           continue;
         }
 
-        if (!msg.message || msg.key.fromMe) continue;
-        if (AUTO_TYPING) await sock.sendPresenceUpdate('composing', jid);
+        if (!msg.message) continue;
+        const age = Date.now() / 1000 - Number(msg.messageTimestamp || 0);
+        if (age > 60) continue; // ignore old/history messages
 
         const text =
           msg.message.conversation ||
@@ -135,7 +149,9 @@ async function start() {
           msg.message.imageMessage?.caption ||
           msg.message.videoMessage?.caption ||
           '';
+        if (text) console.log(`📩 ${msg.key.fromMe ? 'me' : jid}: ${text.slice(0, 80)}`);
         if (!text.startsWith(PREFIX)) continue;
+        if (AUTO_TYPING) await sock.sendPresenceUpdate('composing', jid);
 
         const [name, ...args] = text.slice(PREFIX.length).trim().split(/\s+/);
         const cmd = commands[name.toLowerCase()];
@@ -147,7 +163,7 @@ async function start() {
           msg,
           args,
           jid,
-          isOwner: sender === OWNER,
+          isOwner: msg.key.fromMe || sender === OWNER,
           reply: (t) => sock.sendMessage(jid, { text: t }, { quoted: msg }),
         });
       } catch (err) {

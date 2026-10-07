@@ -4,13 +4,14 @@
   "description": "HAWEE-XD - a WhatsApp bot built with Baileys",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "pair": "node pair.js"
   },
   "author": "HawardTech",
   "license": "MIT",
   "dependencies": {
-    "@whiskeysockets/baileys": "^7.0.0-rc14",
-    "dotenv": "^18.0.6",
-    "pino": "^10.4.0"
+    "@whiskeysockets/baileys": "latest",
+    "dotenv": "latest",
+    "pino": "latest"
   }
 }

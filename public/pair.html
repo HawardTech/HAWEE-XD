@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HAWEE-XD Pairing</title>
+<style>
+  :root{color-scheme:dark}
+  body{margin:0;font-family:system-ui,sans-serif;background:#0d1117;color:#e6edf3;display:flex;justify-content:center;padding:24px}
+  .card{width:100%;max-width:420px;background:#161b22;border:1px solid #30363d;border-radius:14px;padding:20px}
+  h1{margin:0 0 4px;font-size:1.3rem}
+  p.sub{margin:0 0 16px;color:#8b949e;font-size:.9rem}
+  label{display:block;margin:12px 0 4px;font-size:.85rem;color:#8b949e}
+  input,textarea{width:100%;box-sizing:border-box;padding:11px;border-radius:8px;border:1px solid #30363d;background:#0d1117;color:#e6edf3;font-size:1rem}
+  button{width:100%;margin-top:16px;padding:12px;border:0;border-radius:8px;background:#238636;color:#fff;font-size:1rem;font-weight:600}
+  #codeBox,#result{display:none;margin-top:18px;text-align:center}
+  #code{font-size:2rem;letter-spacing:.25em;font-weight:700;background:#0d1117;border-radius:8px;padding:14px;word-break:break-all}
+  #msg{margin-top:14px;font-size:.9rem;color:#8b949e}
+  #msg.bad{color:#ff7b72}
+  textarea{height:110px;font-size:.75rem;text-align:left}
+  .warn{font-size:.8rem;color:#d29922;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>HAWEE-XD Pairing</h1>
+  <p class="sub">Link your WhatsApp and get a SESSION_ID for hosting.</p>
+  <label for="pw">Pairing password</label>
+  <input id="pw" type="password" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+  <label for="num">WhatsApp number (country code, no +)</label>
+  <input id="num" type="tel" placeholder="254700000000" autocomplete="off">
+  <button onclick="start()">Get pairing code</button>
+  <div id="msg"></div>
+  <div id="codeBox"><div id="code"></div></div>
+  <div id="result">
+    <label for="sess">Your SESSION_ID</label>
+    <textarea id="sess" readonly></textarea>
+    <button onclick="copy()">Copy SESSION_ID</button>
+    <div class="warn">Treat this like a password. Anyone with it can use your WhatsApp account. Never post it publicly.</div>
+  </div>
+</div>
+<script>
+var pw = '', timer = null, jobId = '';
+function $(id){ return document.getElementById(id); }
+function setMsg(t, bad){ var m = $('msg'); m.textContent = t; m.className = bad ? 'bad' : ''; }
+function api(path, opts){
+  opts = opts || {};
+  opts.headers = {'content-type':'application/json','x-pair-password':pw};
+  return fetch(path, opts).then(function(r){
+    return r.json().catch(function(){ return {}; }).then(function(j){
+      if(!r.ok) throw new Error(j.error || ('Error ' + r.status));
+      return j;
+    });
+  });
+}
+function start(){
+  pw = $('pw').value.trim();
+  var number = $('num').value.replace(/\D/g,'');
+  clearTimeout(timer);
+  $('codeBox').style.display = 'none';
+  $('result').style.display = 'none';
+  setMsg('Requesting code...');
+  api('/api/start', {method:'POST', body: JSON.stringify({number: number})})
+    .then(function(j){ jobId = j.id; poll(); })
+    .catch(function(e){ setMsg(e.message, true); });
+}
+function poll(){
+  api('/api/status?id=' + jobId).then(function(j){
+    if(j.state === 'code'){
+      $('code').textContent = j.code;
+      $('codeBox').style.display = 'block';
+      setMsg('Enter this code in WhatsApp: Linked devices > Link a device > Link with phone number instead.');
+    } else if(j.state === 'linking'){
+      $('codeBox').style.display = 'none';
+      setMsg('Linking... please wait a few seconds.');
+    } else if(j.state === 'linked'){
+      $('codeBox').style.display = 'none';
+      $('sess').value = j.sessionId;
+      $('result').style.display = 'block';
+      setMsg('Linked successfully!');
+      return;
+    } else if(j.state === 'error'){
+      $('codeBox').style.display = 'none';
+      setMsg(j.message || 'Failed. Try again.', true);
+      return;
+    } else {
+      setMsg('Starting...');
+    }
+    timer = setTimeout(poll, 2000);
+  }).catch(function(e){ setMsg(e.message, true); });
+}
+function copy(){
+  var t = $('sess'); t.select();
+  try { navigator.clipboard.writeText(t.value); } catch(e) { document.execCommand('copy'); }
+  setMsg('Copied. Keep it private!');
+}
+</script>
+</body>
+</html>

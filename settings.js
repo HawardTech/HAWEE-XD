@@ -24,13 +24,18 @@ const defaults = {
   autotyping: flag(['AUTO_TYPING']),
   antidelete: flag(['ANTIDELETE']),
   welcome: flag(['WELCOME']),
-  chatbot: flag(['CHATBOT']),
+  chatbot: flag(['CHATBOT', 'AI']),
+  anticall: flag(['ANTICALL']),
+  antistatus: flag(['ANTISTATUS']),
+  statusdownload: flag(['STATUS_DOWNLOAD']),
+  antilink: ['on', 'kick'].includes(process.env.ANTILINK) ? process.env.ANTILINK : 'off',
+  botname: '',
   welcometext: DEFAULT_WELCOME,
 };
 
 const TOGGLES = [
   'autoviewstatus', 'autostatusreact', 'autoreact', 'autoread',
-  'autotyping', 'antidelete', 'welcome', 'chatbot',
+  'autotyping', 'antidelete', 'welcome', 'chatbot', 'anticall', 'antistatus', 'statusdownload',
 ];
 
 let data = { ...defaults };

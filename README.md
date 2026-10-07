@@ -26,22 +26,26 @@ node index.js
 A pairing code prints in the terminal. In WhatsApp: **Linked devices > Link a device > Link with phone number**.
 
 ## Commands
-Use `.menu` to see them all. Owner settings commands:
+Send `.menu` for the full list. Highlights:
 
-| Command | What it does |
+| Group | Commands |
 | --- | --- |
-| `.mode public` / `.mode private` | Who can use the bot |
-| `.setprefix !` / `.setprefix none` | Change the prefix |
-| `.settings` | Show every toggle |
-| `.set antidelete on` | Turn a feature on or off |
-| `.setwelcome <text>` | Welcome text. Placeholders: `{user}` `{group}` `{count}` `{prefix}` |
+| User | `autoreacts` `antilink` `antidelete` `ai` `owner` `dp` `ping` `translate` (+ `menu` `alive` `uptime` `time`) |
+| Tools | `apk` `facebook` `tiktok` `insta` `song` `video` `joke` `meme` `emojimix` `character` `gdrive` `mf` (+ `imagine` `echo` `calc` `flip` `dice`) |
+| Admin | `private` `public` `autoread` `status` `hack` `hidetag` `tagall` `setname` `anticall` `kickoffline` `antistatus` `groupinfo` `accept` (+ `autotyping` `welcome` `setwelcome` `setprefix` `settings`) |
 
-Toggles: `autoviewstatus`, `autostatusreact`, `autoreact`, `autoread`, `autotyping`, `antidelete`, `welcome`, `chatbot`.
+Features that take `[on/off]` are owner-only and saved in `data/settings.json`. `antilink` also takes `kick`. `status` takes `on|off`, `seen`, `like`, `download` or `system`. `kickoffline` takes `scan` then `kick`.
 
-## Pairing page and SESSION_ID
-Run `node pair.js` (set `PAIR_PASSWORD` in `.env` first) and open `http://127.0.0.1:3000`. Enter the password and your number, type the code in WhatsApp, and copy the `SESSION_ID` it shows. On a host, add it as the `SESSION_ID` environment variable and the bot logs in without a saved session. Treat it like a password, and never commit it.
+## Downloads (yt-dlp)
+`song`, `video`, `insta` and `facebook` use [yt-dlp](https://github.com/yt-dlp/yt-dlp) and ffmpeg.
+- **Termux:** `pkg install python ffmpeg yt-dlp`
+- **Docker / Render:** already installed by the included `Dockerfile`.
 
-On a cloud host, deploy once with start command `node pair.js` and `HOST=0.0.0.0`, grab the SESSION_ID, then change the start command to `node index.js`.
+Notes: files are limited to `MAX_DOWNLOAD_MB` (default 50) and 20 minutes. YouTube often blocks data-centre IPs (cloud hosts), so it works best from a home connection. Instagram often needs a login: export a `cookies.txt` and set `YTDLP_COOKIES`. Only download content you have the right to use.
+
+## Optional keys
+- `ANTHROPIC_API_KEY`: makes `.ai` answer with Claude instead of simple keyword replies.
+- `TENOR_KEY`: enables `.emojimix`.
 
 ## Adding a command
 Add an entry to `commands.js`:
